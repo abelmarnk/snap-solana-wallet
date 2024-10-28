@@ -7,6 +7,10 @@ module.exports = {
 
   extends: ['@metamask/eslint-config'],
 
+  rules: {
+    'import/no-named-as-default': 0,
+  },
+
   overrides: [
     {
       files: ['*.js'],

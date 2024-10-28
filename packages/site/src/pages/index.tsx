@@ -147,6 +147,7 @@ const Index = () => {
                 'Get started by connecting to and installing the example snap.',
               button: (
                 <ConnectButton
+                  // eslint-disable-next-line @typescript-eslint/no-misused-promises
                   onClick={requestSnap}
                   disabled={!isMetaMaskReady}
                 />
@@ -163,6 +164,7 @@ const Index = () => {
                 'While connected to a local running snap this button will always be displayed in order to update the snap if a change is made.',
               button: (
                 <ReconnectButton
+                  // eslint-disable-next-line @typescript-eslint/no-misused-promises
                   onClick={requestSnap}
                   disabled={!installedSnap}
                 />
@@ -178,6 +180,7 @@ const Index = () => {
               'Display a custom message within a confirmation screen in MetaMask.',
             button: (
               <SendHelloButton
+                // eslint-disable-next-line @typescript-eslint/no-misused-promises
                 onClick={handleSendHelloClick}
                 disabled={!installedSnap}
               />
