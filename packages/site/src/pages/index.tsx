@@ -1,16 +1,16 @@
 import styled from 'styled-components';
 
 import {
+  Card,
   ConnectButton,
   InstallFlaskButton,
   ReconnectButton,
   SendHelloButton,
-  Card,
 } from '../components';
 import { defaultSnapOrigin } from '../config';
 import {
-  useMetaMask,
   useInvokeSnap,
+  useMetaMask,
   useMetaMaskContext,
   useRequestSnap,
 } from '../hooks';

@@ -22,11 +22,17 @@
     "lint:eslint": "eslint . --cache --ext js,jsx,ts,tsx",
     "lint:fix": "yarn lint:eslint --fix && yarn lint:misc --write",
     "lint:misc": "prettier '**/*.json' '**/*.md' '!**/CHANGELOG.md' '**/*.yml' --ignore-path .gitignore",
-    "start": "yarn workspaces foreach --parallel --interlaced --worktree --verbose run start",
-    "test": "yarn workspace @metamask/solana-wallet-snap run test",
+    "prepare": "husky",
     "prettier:check": "prettier --check 'packages/**/*.{ts,json,js,tsx}'",
     "prettier:fix": "prettier --write 'packages/**/*.{ts,json,js,tsx}'",
-    "prepare": "husky"
+    "start": "yarn workspaces foreach --parallel --interlaced --worktree --verbose run start",
+    "test": "yarn workspace @metamask/solana-wallet-snap run test"
+  },
+  "lint-staged": {
+    "**/*.{ts,tsx}": [
+      "yarn prettier:fix",
+      "yarn lint:fix"
+    ]
   },
   "devDependencies": {
     "@commitlint/cli": "^17.7.1",
@@ -38,7 +44,6 @@
     "@metamask/eslint-config-nodejs": "^12.1.0",
     "@metamask/eslint-config-typescript": "^12.1.0",
     "@metamask/utils": "^10.0.0",
-    "@trivago/prettier-plugin-sort-imports": "^4.3.0",
     "@types/jest": "^27.5.2",
     "@types/react": "^18.0.15",
     "@types/react-dom": "^18.0.6",
@@ -63,12 +68,6 @@
   "packageManager": "yarn@4.5.1",
   "engines": {
     "node": ">=20.17.0"
-  },
-  "lint-staged": {
-    "**/*.{ts,tsx}": [
-      "yarn prettier:fix",
-      "yarn lint"
-    ]
   },
   "lavamoat": {
     "allowScripts": {
