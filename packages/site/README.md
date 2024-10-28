@@ -1,4 +1,4 @@
-# TypeScript Example Snap Front-end
+# Metamask Solana Manager Test dapp
 
 This project was bootstrapped with [Gatsby](https://www.gatsbyjs.com/).
 

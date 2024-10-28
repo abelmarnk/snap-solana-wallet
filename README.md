@@ -1,53 +1,61 @@
-# @metamask/template-snap-monorepo
-
-This repository demonstrates how to develop a snap with TypeScript. For detailed
-instructions, see [the MetaMask documentation](https://docs.metamask.io/guide/snaps.html#serving-a-snap-to-your-local-environment).
-
-MetaMask Snaps is a system that allows anyone to safely expand the capabilities
-of MetaMask. A _snap_ is a program that we run in an isolated environment that
-can customize the wallet experience.
-
-## Snaps is pre-release software
-
-To interact with (your) Snaps, you will need to install [MetaMask Flask](https://metamask.io/flask/),
-a canary distribution for developers that provides access to upcoming features.
+# Solana Wallet Snap Monorepo
 
 ## Getting Started
 
-Clone the template-snap repository [using this template](https://github.com/MetaMask/template-snap-monorepo/generate)
-and set up the development environment:
+The Solana Wallet Snap allows MetaMask and dapp to manage accounts with Solana network.
 
-```shell
-yarn install && yarn start
+- [Site README](packages/site/README.md)
+- [Snap README](packages/snap/README.md)
+
+### Prerequisites
+
+- [MetaMask Flask](https://metamask.io/flask/)
+- Nodejs `18`. We **strongly** recommend you install via [NVM](https://github.com/creationix/nvm) to avoid incompatibility issues between different node projects.
+  - Once installed, you should also install [Yarn](http://yarnpkg.com/) with `npm i -g yarn` to make working with this repository easiest.
+
+## Installing
+
+```bash
+nvm use 18
+yarn install
 ```
 
-## Cloning
+## Running
 
-This repository contains GitHub Actions that you may find useful, see
-`.github/workflows` and [Releasing & Publishing](https://github.com/MetaMask/template-snap-monorepo/edit/main/README.md#releasing--publishing)
-below for more information.
+### Quick Start
 
-If you clone or create this repository outside the MetaMask GitHub organization,
-you probably want to run `./scripts/cleanup.sh` to remove some files that will
-not work properly outside the MetaMask GitHub organization.
+```bash
+yarn start
+```
 
-If you don't wish to use any of the existing GitHub actions in this repository,
-simply delete the `.github/workflows` directory.
+- Snap server and debug page: http://localhost:8080/
+- Example UI dapp: http://localhost:3000/
 
-## Contributing
+### Snap
 
-### Testing and Linting
+⚠️ When snap updates you will need to still reconnect from the dapp to see changes
 
-Run `yarn test` to run the tests once.
+```bash
+# Running Snap via watch mode
+yarn workspace @metamask/solana-wallet-snap start
+```
 
-Run `yarn lint` to run the linter, or run `yarn lint:fix` to run the linter and
-fix any automatically fixable issues.
+Alternatively you can build and serve the snap manually. This can sometimes be more stable than watch mode but requires
+a manual rebuild and serve anytime there is a change on the snap.
 
-### Using NPM packages with scripts
+```bash
+# Building and serving snap manually
+yarn workspace @metamask/solana-wallet-snap build
+yarn workspace @metamask/solana-wallet-snap serve
+```
 
-Scripts are disabled by default for security reasons. If you need to use NPM
-packages with scripts, you can run `yarn allow-scripts auto`, and enable the
-script in the `lavamoat.allowScripts` section of `package.json`.
+### Example UI
 
-See the documentation for [@lavamoat/allow-scripts](https://github.com/LavaMoat/LavaMoat/tree/main/packages/allow-scripts)
-for more information.
+```bash
+# Running example UI
+yarn workspace example start
+```
+
+### Testing
+
+Before running `yarn test` make sure your build the snap first by running `yarn build`.

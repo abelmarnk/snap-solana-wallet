@@ -1,16 +1,16 @@
 import styled from 'styled-components';
 
 import {
+  Card,
   ConnectButton,
   InstallFlaskButton,
   ReconnectButton,
   SendHelloButton,
-  Card,
 } from '../components';
 import { defaultSnapOrigin } from '../config';
 import {
-  useMetaMask,
   useInvokeSnap,
+  useMetaMask,
   useMetaMaskContext,
   useRequestSnap,
 } from '../hooks';
@@ -117,7 +117,7 @@ const Index = () => {
   return (
     <Container>
       <Heading>
-        Welcome to <Span>template-snap</Span>
+        Welcome to <Span>solana-snap</Span>
       </Heading>
       <Subtitle>
         Get started by editing <code>src/index.tsx</code>
@@ -147,6 +147,7 @@ const Index = () => {
                 'Get started by connecting to and installing the example snap.',
               button: (
                 <ConnectButton
+                  // eslint-disable-next-line @typescript-eslint/no-misused-promises
                   onClick={requestSnap}
                   disabled={!isMetaMaskReady}
                 />
@@ -163,6 +164,7 @@ const Index = () => {
                 'While connected to a local running snap this button will always be displayed in order to update the snap if a change is made.',
               button: (
                 <ReconnectButton
+                  // eslint-disable-next-line @typescript-eslint/no-misused-promises
                   onClick={requestSnap}
                   disabled={!installedSnap}
                 />
@@ -178,6 +180,7 @@ const Index = () => {
               'Display a custom message within a confirmation screen in MetaMask.',
             button: (
               <SendHelloButton
+                // eslint-disable-next-line @typescript-eslint/no-misused-promises
                 onClick={handleSendHelloClick}
                 disabled={!installedSnap}
               />
