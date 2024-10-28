@@ -117,7 +117,7 @@ const Index = () => {
   return (
     <Container>
       <Heading>
-        Welcome to <Span>template-snap</Span>
+        Welcome to <Span>solana-snap</Span>
       </Heading>
       <Subtitle>
         Get started by editing <code>src/index.tsx</code>
