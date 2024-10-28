@@ -29,7 +29,7 @@
     "test": "yarn workspace @metamask/solana-wallet-snap run test"
   },
   "lint-staged": {
-    "**/*.{ts,tsx}": [
+    "*": [
       "yarn prettier:fix",
       "yarn lint:fix"
     ]
