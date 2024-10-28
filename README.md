@@ -4,6 +4,9 @@
 
 The Solana Wallet Snap allows MetaMask and dapp to manage accounts with Solana network.
 
+- [Site README](packages/site/README.md)
+- [Snap README](packages/snap/README.md)
+
 ### Prerequisites
 
 - [MetaMask Flask](https://metamask.io/flask/)
@@ -52,3 +55,7 @@ yarn workspace @metamask/solana-wallet-snap serve
 # Running example UI
 yarn workspace example start
 ```
+
+### Testing
+
+Before running `yarn test` make sure your build the snap first by running `yarn build`.
