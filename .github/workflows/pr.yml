@@ -20,3 +20,27 @@ jobs:
   build-lint-test:
     name: Validate
     uses: ./.github/workflows/build-lint-test.yml
+
+  pages: 
+    runs-on: ubuntu-latest
+    needs: [build-lint-test]
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Restore snap build cache
+        uses: actions/cache@v3
+        with:
+          path: ./packages/site/public
+          key: site-${{ runner.os }}-${{ github.sha }}
+          restore-keys: site-${{ runner.os }}-
+      - name: Upload to Github Pages
+        if: always()
+        uses: actions/upload-pages-artifact@v2
+        with:
+          path: ./packages/site/public
+      - name: Deploy to GitHub Pages
+        uses: actions/deploy-pages@v2
