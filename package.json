@@ -73,7 +73,8 @@
   "lavamoat": {
     "allowScripts": {
       "@lavamoat/preinstall-always-fail": false,
-      "sharp": true
+      "sharp": true,
+      "@commitlint/cli>@commitlint/load>ts-node>@swc/core": false
     }
   }
 }
