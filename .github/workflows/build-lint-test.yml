@@ -39,6 +39,7 @@ jobs:
           path: ./packages/snap/dist
           key: snap-${{ runner.os }}-${{ github.sha }}
       - name: Cache site build
+        if: github.ref == 'refs/heads/main'
         uses: actions/cache@v3
         with:
           path: ./packages/site/public

@@ -16,6 +16,9 @@ We use `commitlint` for linting our commits, this means we will needs to follow 
 > [!IMPORTANT]  
 > A git hook is been setup in order to lint your commit message and fix your formatting and linting issues.
 
+> [!TIP]
+> We recommend `feat` and `fix` categories in order to have a clean CHANGELOG
+
 ## Push
 
 When pushing to a branch, we will automatically run test in order to make sure all the previous functionality works as expected after your changes.
