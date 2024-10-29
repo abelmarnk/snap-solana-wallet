@@ -52,12 +52,4 @@ yarn start
 > - Snap server and debug page: http://localhost:8080/
 > - Example UI dapp: http://localhost:3000/
 
-## Running
-
-### Quick Start
-
-```bash
-yarn start
-```
-
 For more detail on Snap or DApp development, refer to its respective README.
