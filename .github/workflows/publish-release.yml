@@ -1,12 +1,16 @@
 name: Publish Release
 
 on:
-  workflow_call:
-    secrets:
-      NPM_TOKEN:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to release'
         required: true
-      SLACK_WEBHOOK_URL:
-        required: true
+    # secrets:
+    #   NPM_TOKEN:
+    #     required: true
+    #   SLACK_WEBHOOK_URL:
+    #     required: true
 
 jobs:
   publish-release:
@@ -16,7 +20,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ github.event.inputs.tag }}
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
