@@ -16,7 +16,13 @@ jobs:
       - name: Check workflow files
         run: ${{ steps.download-actionlint.outputs.executable }} -color
         shell: bash
-
   build-lint-test:
     name: Validate
     uses: ./.github/workflows/build-lint-test.yml
+
+  sonarcloud:
+    name: SonarCloud
+    needs: build-lint-test
+    uses: ./.github/workflows/sonarcloud.yml
+    secrets:
+      sonar_token: ${{ secrets.SONAR_TOKEN }}

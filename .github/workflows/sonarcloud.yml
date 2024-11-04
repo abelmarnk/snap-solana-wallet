@@ -1,0 +1,34 @@
+name: Validate application code
+
+permissions:
+  contents: read
+
+on:
+  workflow_call:
+    secrets:
+      sonar_token:
+        description: SonarCloud token
+        required: true
+
+jobs:
+  sonarcloud-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/download-artifact@v4
+        with:
+          path: coverage
+          pattern: tests-artifacts-*
+          merge-multiple: true
+      - name: Display structure of downloaded files
+        run: |
+          if [ -d coverage ]; then
+            ls -R coverage
+          fi
+      - name: SonarCloud Scan
+        uses: sonarsource/sonarcloud-github-action@383f7e52eae3ab0510c3cb0e7d9d150bbaeab838
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.sonar_token }}
