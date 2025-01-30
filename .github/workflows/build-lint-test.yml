@@ -17,7 +17,7 @@ on:
         required: true
       TOKEN_API_BASE_URL:
         required: true
-      TOKEN_API_KEY:
+      STATIC_API_BASE_URL:
         required: true
 
 jobs:
@@ -47,7 +47,7 @@ jobs:
       PRICE_API_BASE_URL: ${{ secrets.PRICE_API_BASE_URL }}
       LOCAL_API_BASE_URL: ${{ secrets.LOCAL_API_BASE_URL }}
       TOKEN_API_BASE_URL: ${{ secrets.TOKEN_API_BASE_URL }}
-      TOKEN_API_KEY: ${{ secrets.TOKEN_API_KEY }}
+      STATIC_API_BASE_URL: ${{ secrets.STATIC_API_BASE_URL }}
     steps:
       - uses: actions/checkout@v3
       - name: Use Node.js
@@ -114,7 +114,7 @@ jobs:
       PRICE_API_BASE_URL: ${{ secrets.PRICE_API_BASE_URL }}
       LOCAL_API_BASE_URL: ${{ secrets.LOCAL_API_BASE_URL }}
       TOKEN_API_BASE_URL: ${{ secrets.TOKEN_API_BASE_URL }}
-      TOKEN_API_KEY: ${{ secrets.TOKEN_API_KEY }}
+      STATIC_API_BASE_URL: ${{ secrets.STATIC_API_BASE_URL }}
       LOCAL: true
     steps:
       - uses: actions/checkout@v3
