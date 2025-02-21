@@ -46,15 +46,18 @@ export const Accounts = () => {
 
     await invokeKeyring({
       method: KeyringRpcMethod.SubmitRequest,
-      id: '4b445722-6766-4f99-ade5-c2c9295f21d0', // uuidv4
       params: {
-        id: accounts?.[0]?.id,
+        id: crypto.randomUUID(),
         scope: Network.Mainnet,
         account: accounts?.[0]?.id,
         request: {
-          method: SolMethod.SendAndConfirmTransaction,
+          method: SolMethod.SignAndSendTransaction,
           params: {
-            base64EncodedTransactionMessage: lifiQuote.transactionRequest.data,
+            transaction: lifiQuote.transactionRequest.data,
+            scope: Network.Mainnet,
+            account: {
+              address: 'DtMUkCoeyzs35B6EpQQxPyyog6TRwXxV1W1Acp8nWBNa',
+            },
           },
         },
       },
