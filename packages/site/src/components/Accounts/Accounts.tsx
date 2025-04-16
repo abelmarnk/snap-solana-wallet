@@ -10,11 +10,20 @@ export const Accounts = () => {
   const invokeKeyring = useInvokeKeyring();
 
   const fetchAccounts = async () => {
-    const accountList = (await invokeKeyring({
+    const accountList = ((await invokeKeyring({
       method: KeyringRpcMethod.ListAccounts,
-    })) as KeyringAccount[];
+    })) || []) as KeyringAccount[];
 
-    setAccounts(accountList);
+    const sortedByEntropySource = accountList.sort((a, b) => {
+      if (a.options?.entropySource && b.options?.entropySource) {
+        return a.options.entropySource
+          .toString()
+          .localeCompare(b.options.entropySource.toString());
+      }
+      return 0;
+    });
+
+    setAccounts(sortedByEntropySource);
   };
 
   const handleCreateAccount = async () => {
@@ -55,6 +64,7 @@ export const Accounts = () => {
       <Table.Root marginTop="4" variant="line">
         <Table.Header>
           <Table.Row>
+            <Table.ColumnHeader>SRP</Table.ColumnHeader>
             <Table.ColumnHeader>Address</Table.ColumnHeader>
             <Table.ColumnHeader>Balance</Table.ColumnHeader>
             <Table.ColumnHeader textAlign="end"></Table.ColumnHeader>
