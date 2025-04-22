@@ -1,55 +1,25 @@
 # Solana Wallet Snap Monorepo
 
-<img src="./packages/snap/images/icon.svg" width="200" style="display: block; margin: 0 auto;" alt="Solana Logo" />
+![Hero Illustration](docs/hero.png)
 
-## Getting Started
+Bringing official Solana support to MetaMask. Create accounts, check balances, and use Solana dApps right from your MetaMask wallet. Simple, secure, and seamless.
 
-The Solana Wallet Snap allows MetaMask and dapps to manage accounts and manage state on Solana network.
+## Installation
 
-- [@metamask/solana-wallet-snap](packages/snap/README.md)
-- [@metamask/solana-wallet-test-dapp](packages/site/README.md)
+This repository contains the Solana Wallet Snap, which is a plugin for MetaMask. To use it, you'll need to:
 
-## Prerequisites
-
-- [MetaMask Flask](https://consensyssoftware.atlassian.net/wiki/x/IQCOB10)
-- Nodejs `21.7.3` (specified in `.nvmrc`)
-- yarn 3.8.6 (Due to MetaMask packages incompatibilities)
-
-> [!IMPORTANT]
-> We **strongly** recommend you install via [NVM](https://github.com/creationix/nvm) to avoid incompatibility issues between different node projects.
-> Once installed, you should also install [Yarn](http://yarnpkg.com/) with `npm i -g yarn` to make working with this repository easiest.
-
-## Setup
-
-1. Clone the project
+1. First, clone and set up the [MetaMask Extension repository](https://github.com/MetaMask/metamask-extension)
+2. Then install this snap in your local MetaMask extension development environment:
 
 ```bash
-git clone git@github.com:MetaMask/snap-solana-wallet.git
-cd snap-solana-wallet
+# In your metamask-extension directory
+npm i @metamask/snap-solana-wallet
+# or
+yarn add @metamask/snap-solana-wallet
 ```
 
-2. Use the correct Node version
+This dual repository setup allows you to develop and test the Solana Wallet Snap alongside the main MetaMask extension. The snap is installed as a dependency in the MetaMask extension repository, where it can be tested and integrated.
 
-```bash
-nvm use
-```
+## Contributing
 
-3. Install dependecies
-
-```bash
-yarn
-```
-
-4. Start the project
-
-```bash
-yarn start
-```
-
-> [!NOTE]  
-> This will start both the snap and the dapp:
->
-> - Snap server and debug page: http://localhost:8080/
-> - Example UI dapp: http://localhost:3000/
-
-For more detail on Snap or DApp development, refer to its respective README.
+We welcome contributions to the Solana Wallet Snap! Please read our [Contributing](docs/contributing.md) guidelines to get started.
