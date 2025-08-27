@@ -68,7 +68,6 @@ async function onCancelButtonClick({
         method: ScheduleBackgroundEventMethod.OnTransactionRejected,
         params: {
           accountId: fromAccountId,
-          base64EncodedTransaction: transactionMessage,
           metadata: {
             scope,
             origin: METAMASK_ORIGIN,
@@ -118,7 +117,6 @@ async function onConfirmButtonClick({
         method: ScheduleBackgroundEventMethod.OnTransactionApproved,
         params: {
           accountId: context.fromAccountId,
-          base64EncodedTransaction: context.transactionMessage,
           metadata: {
             scope: context.scope,
             origin: METAMASK_ORIGIN,
@@ -169,6 +167,9 @@ async function onConfirmButtonClick({
 
   // Finally, show the transaction-complete or transaction-failed stage
   await updateInterface(id, <Send context={updatedContext} />, updatedContext);
+
+  // Clean up the interface name to id map
+  await state.deleteKey(`mapInterfaceNameToId.${SEND_FORM_INTERFACE_NAME}`);
 }
 
 export const eventHandlers = {

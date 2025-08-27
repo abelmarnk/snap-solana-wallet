@@ -10,6 +10,7 @@ import type {
 } from '../../../entities';
 import type { EventEmitter } from '../../../infrastructure';
 import type { Network } from '../../constants/solana';
+import { getClientStatus } from '../../utils/interface';
 import { createPrefixedLogger, type ILogger } from '../../utils/logger';
 import type { ConfigProvider } from '../config';
 import type { WebSocketConnectionRepository } from './WebSocketConnectionRepository';
@@ -69,22 +70,50 @@ export class WebSocketConnectionService {
   }
 
   #bindHandlers(): void {
-    // When the extension starts, or that the snap is updated / installed, the Snap platform has lost all its previously opened websockets, so we need to re-initialize
-    this.#eventEmitter.on('onStart', this.#handleOnStart.bind(this));
-    this.#eventEmitter.on('onUpdate', this.#handleOnStart.bind(this));
-    this.#eventEmitter.on('onInstall', this.#handleOnStart.bind(this));
+    // Aliases to make the code more readable
+    const setup = this.#setupConnections.bind(this);
+    const open = this.#openConnectionsForActiveNetworks.bind(this);
+    const close = this.#closeAllConnections.bind(this);
+    const list = this.#listConnections.bind(this);
+    const handleEvent = this.#handleWebSocketEvent.bind(this);
 
-    this.#eventEmitter.on(
-      'onWebSocketEvent',
-      this.#handleWebSocketEvent.bind(this),
-    );
+    // When the extension starts, or that the snap is updated / installed, the Snap platform looses previously opened web socket connections,
+    // so we need to setup them up again, if needed.
+    this.#eventEmitter.on('onStart', setup);
+    this.#eventEmitter.on('onUpdate', setup);
+    this.#eventEmitter.on('onInstall', setup);
 
-    // Specific binds to enable manual testing from the test dapp
-    this.#eventEmitter.on('onListWebSockets', this.#listConnections.bind(this));
+    // When the extension becomes active, we open all connections
+    this.#eventEmitter.on('onActive', open);
+
+    // When the extension becomes inactive, we close all connections
+    this.#eventEmitter.on('onInactive', close);
+
+    this.#eventEmitter.on('onWebSocketEvent', handleEvent);
+
+    // Specific bind to enable manual testing from the test dapp
+    this.#eventEmitter.on('onListWebSockets', list);
   }
 
-  async #handleOnStart(): Promise<void> {
-    this.#logger.log(`Handling onStart/onUpdate/onInstall`);
+  /**
+   * Sets up the connections.
+   * - If the client is active, we open them for all active networks.
+   * - If the client is inactive, we close them all.
+   */
+  async #setupConnections(): Promise<void> {
+    this.#logger.log(`Setting up connections`);
+
+    const { active } = await getClientStatus();
+
+    if (active) {
+      await this.#openConnectionsForActiveNetworks();
+    } else {
+      await this.#closeAllConnections();
+    }
+  }
+
+  async #openConnectionsForActiveNetworks(): Promise<void> {
+    this.#logger.log(`Opening connections for active networks`);
 
     const { activeNetworks } = this.#configProvider.get();
 
@@ -99,13 +128,15 @@ export class WebSocketConnectionService {
   }
 
   /**
-   * Opens a connection for the specified network.
-   * @param network - The network to open a connection for.
-   * @returns A promise that resolves to the connection.
+   * Idempotently opens a WebSocket connection for the given network.
+   * If a connection already exists for the network, this method does nothing.
+   * @param network - The network for which to open a connection.
+   * @returns A promise that resolves when the connection is established or already exists.
    */
   async openConnection(network: Network): Promise<void> {
     this.#logger.log(`Opening connection for network ${network}`);
 
+    // Get the websocket url
     const networkConfig = this.#configProvider.getNetworkBy('caip2Id', network);
     const { webSocketUrl } = networkConfig;
 
@@ -123,6 +154,19 @@ export class WebSocketConnectionService {
       url: webSocketUrl,
       protocols: [],
     });
+  }
+
+  async #closeAllConnections(): Promise<void> {
+    this.#logger.log(`Closing all connections`);
+
+    const connections = await this.#connectionRepository.getAll();
+    await Promise.allSettled(connections.map(this.#closeConnection.bind(this)));
+  }
+
+  async #closeConnection(connection: WebSocketConnection): Promise<void> {
+    this.#logger.log(`Closing connection for network ${connection.network}`);
+
+    await this.#connectionRepository.delete(connection.id);
   }
 
   /**
@@ -170,7 +214,10 @@ export class WebSocketConnectionService {
 
     const { id: connectionId, type } = event;
 
-    this.#logger.log(`Handling connection event "${type}" for ${connectionId}`);
+    this.#logger.log(
+      `Handling connection event "${type}" for ${connectionId}`,
+      event,
+    );
 
     switch (type) {
       case 'open':
@@ -221,6 +268,14 @@ export class WebSocketConnectionService {
   }
 
   async #handleDisconnected(event: WebSocketCloseEvent): Promise<void> {
+    const { wasClean } = event;
+
+    // If the connection was closed cleanly (= we close it intentionally), we don't need to attempt to reconnect
+    if (wasClean) {
+      this.#logger.log(`✅ Connection closed cleanly`, event);
+      return;
+    }
+
     // Here, we cannot rely on this.#connectionRepository.getById() because the connection doesn't exist anymore,
     // so we need to find the network from the event origin
     const { origin } = event;

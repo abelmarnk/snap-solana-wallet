@@ -18,6 +18,7 @@ import { SOL_IMAGE_SVG } from '../../../../core/test/mocks/solana-image-svg';
 import type { Preferences } from '../../../../core/types/snap';
 import { addressToCaip10 } from '../../../../core/utils/addressToCaip10';
 import { i18n } from '../../../../core/utils/i18n';
+import { parseOrigin } from '../../../../core/utils/parseOrigin';
 import type { SolanaKeyringAccount } from '../../../../entities';
 import { BasicNullableField } from '../../components/BasicNullableField/BasicNullableField';
 import { EstimatedChanges } from '../../components/EstimatedChanges/EstimatedChanges';
@@ -54,7 +55,7 @@ export const ConfirmSignIn: SnapComponent<ConfirmSignInProps> = ({
   networkImage,
 }) => {
   const translate = i18n(preferences.locale);
-  const originHostname = origin ? new URL(origin).hostname : null;
+  const originHostname = origin ? parseOrigin(origin) : null;
 
   const {
     domain,
@@ -71,6 +72,8 @@ export const ConfirmSignIn: SnapComponent<ConfirmSignInProps> = ({
     address,
   } = params;
 
+  // The inputs are already sanitized by the struct validation
+  // No need to sanitize again here
   const accountAddressCaip10 = addressToCaip10(scope, account.address);
   const signInAddressCaip10 = address ? addressToCaip10(scope, address) : null;
 
@@ -152,7 +155,7 @@ export const ConfirmSignIn: SnapComponent<ConfirmSignInProps> = ({
           </Text>
           <Text>{statement ?? ''}</Text>
 
-          <BasicNullableField label="URL" value={uri} />
+          <BasicNullableField label="URL" value={uri ?? ''} />
 
           <Box alignment="space-between" direction="horizontal">
             <Text fontWeight="medium" color="alternative">
@@ -185,31 +188,31 @@ export const ConfirmSignIn: SnapComponent<ConfirmSignInProps> = ({
 
           <BasicNullableField
             label={translate('confirmation.signIn.version')}
-            value={version}
+            value={version ?? ''}
           />
           <BasicNullableField
             label={translate('confirmation.signIn.chainId')}
-            value={chainId}
+            value={chainId ?? ''}
           />
           <BasicNullableField
             label={translate('confirmation.signIn.nonce')}
-            value={nonce}
+            value={nonce ?? ''}
           />
           <BasicNullableField
             label={translate('confirmation.signIn.issuedAt')}
-            value={issuedAt}
+            value={issuedAt ?? ''}
           />
           <BasicNullableField
             label={translate('confirmation.signIn.expirationTime')}
-            value={expirationTime}
+            value={expirationTime ?? ''}
           />
           <BasicNullableField
             label={translate('confirmation.signIn.notBefore')}
-            value={notBefore}
+            value={notBefore ?? ''}
           />
           <BasicNullableField
             label={translate('confirmation.signIn.requestId')}
-            value={requestId}
+            value={requestId ?? ''}
           />
 
           {resources && resources.length > 0 ? (

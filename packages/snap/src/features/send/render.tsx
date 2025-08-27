@@ -3,6 +3,7 @@ import { type OnRpcRequestHandler } from '@metamask/snaps-sdk';
 import { assert } from '@metamask/superstruct';
 
 import { KnownCaip19Id, Network, Networks } from '../../core/constants/solana';
+import type { UnencryptedStateValue } from '../../core/services/state/State';
 import { lamportsToSol } from '../../core/utils/conversion';
 import {
   createInterface,
@@ -12,6 +13,7 @@ import {
   updateInterface,
 } from '../../core/utils/interface';
 import {
+  accountsService,
   assetsService,
   connection,
   priceApiClient,
@@ -88,22 +90,17 @@ export const renderSend: OnRpcRequestHandler = async ({ request }) => {
     loading: true,
   };
 
-  const [stateValue, preferences] = await Promise.all([
-    state.get(),
-    getPreferences().catch(() => DEFAULT_SEND_CONTEXT.preferences),
-  ]);
+  const [assetEntities, keyringAccounts, tokenPrices, preferences] =
+    await Promise.all([
+      assetsService.getAll(),
+      accountsService.getAll(),
+      state.getKey<UnencryptedStateValue['tokenPrices']>('tokenPrices'),
+      getPreferences().catch(() => DEFAULT_SEND_CONTEXT.preferences),
+    ]);
 
-  const { assets, keyringAccounts, tokenPrices } = stateValue;
-
-  context.balances = getBalancesInScope({
-    scope,
-    balances: assets,
-  });
-
-  const accountBalances = assets[context.fromAccountId] ?? {};
-  context.assets = Object.keys(accountBalances) as CaipAssetType[];
-
-  context.accounts = Object.values(keyringAccounts);
+  context.balances = getBalancesInScope(scope, assetEntities);
+  context.assets = assetEntities.map((asset) => asset.assetType);
+  context.accounts = keyringAccounts;
   context.preferences = preferences;
   context.tokenPrices = tokenPrices ?? {};
 
@@ -181,6 +178,12 @@ export const renderSend: OnRpcRequestHandler = async ({ request }) => {
   await updateInterface(id, <Send context={context} />, context);
 
   await state.setKey(`mapInterfaceNameToId.${SEND_FORM_INTERFACE_NAME}`, id);
+
+  // Schedule the next refresh
+  await snap.request({
+    method: 'snap_scheduleBackgroundEvent',
+    params: { duration: 'PT30S', request: { method: 'refreshSend' } },
+  });
 
   return dialogPromise;
 };

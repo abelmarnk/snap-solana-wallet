@@ -1,14 +1,15 @@
 import { type OnRpcRequestHandler } from '@metamask/snaps-sdk';
 
 import { renderSend } from '../../../features/send/render';
-import { eventEmitter } from '../../../snapContext';
+import { accountsSynchronizer, eventEmitter } from '../../../snapContext';
 import { getFeeForTransaction } from './getFeeForTransaction';
 import { RpcRequestMethod, TestDappRpcRequestMethod } from './types';
 
 export const handlers: Record<RpcRequestMethod, OnRpcRequestHandler> = {
-  [RpcRequestMethod.StartSendTransactionFlow]: renderSend,
+  // TODO: Deprecate this method.
   [RpcRequestMethod.GetFeeForTransaction]: getFeeForTransaction,
 
+  [RpcRequestMethod.StartSendTransactionFlow]: renderSend,
   // Methods specific to the test dapp
   [TestDappRpcRequestMethod.ListWebSockets as any]: async () => {
     await eventEmitter.emitSync('onListWebSockets');
@@ -28,6 +29,10 @@ export const handlers: Record<RpcRequestMethod, OnRpcRequestHandler> = {
   },
   [TestDappRpcRequestMethod.TestOnUpdate as any]: async () => {
     await eventEmitter.emitSync('onUpdate');
+    return null;
+  },
+  [TestDappRpcRequestMethod.SynchronizeAccounts as any]: async () => {
+    await accountsSynchronizer.synchronize();
     return null;
   },
 };

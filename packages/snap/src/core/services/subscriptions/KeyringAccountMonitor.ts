@@ -1,6 +1,5 @@
 /* eslint-disable jsdoc/check-indentation */
 import { assert, number, string } from '@metamask/superstruct';
-import type { CaipAssetType } from '@metamask/utils';
 import { TOKEN_PROGRAM_ADDRESS } from '@solana-program/token';
 import { TOKEN_2022_PROGRAM_ADDRESS } from '@solana-program/token-2022';
 import type { Base58EncodedBytes } from '@solana/kit';
@@ -20,10 +19,11 @@ import { SolanaCaip19Tokens } from '../../constants/solana';
 import { fromTokenUnits } from '../../utils/fromTokenUnit';
 import { createPrefixedLogger, type ILogger } from '../../utils/logger';
 import { tokenAddressToCaip19 } from '../../utils/tokenAddressToCaip19';
+import type { AccountsSynchronizer } from '../accounts';
 import type { AccountsService } from '../accounts/AccountsService';
 import type { AssetsService } from '../assets/AssetsService';
 import type { ConfigProvider } from '../config';
-import type { TransactionsService } from '../transactions/TransactionsService';
+import type { TransactionsService } from '../transactions';
 
 /**
  * Business logic for monitoring keyring accounts via WebSockets:
@@ -43,6 +43,8 @@ export class KeyringAccountMonitor {
   readonly #assetsService: AssetsService;
 
   readonly #transactionsService: TransactionsService;
+
+  readonly #accountsSynchronizer: AccountsSynchronizer;
 
   readonly #configProvider: ConfigProvider;
 
@@ -74,6 +76,7 @@ export class KeyringAccountMonitor {
     accountService: AccountsService,
     assetsService: AssetsService,
     transactionsService: TransactionsService,
+    accountsSynchronizer: AccountsSynchronizer,
     configProvider: ConfigProvider,
     eventEmitter: EventEmitter,
     logger: ILogger,
@@ -82,6 +85,7 @@ export class KeyringAccountMonitor {
     this.#accountService = accountService;
     this.#assetsService = assetsService;
     this.#transactionsService = transactionsService;
+    this.#accountsSynchronizer = accountsSynchronizer;
     this.#configProvider = configProvider;
     this.#eventEmitter = eventEmitter;
     this.#logger = createPrefixedLogger(logger, '[🗝️ KeyringAccountMonitor]');
@@ -311,14 +315,19 @@ export class KeyringAccountMonitor {
     const { lamports } = notification.params.result.value;
     assert(lamports, number());
 
-    const assetType: CaipAssetType = `${network}/${SolanaCaip19Tokens.SOL}`;
-    const balance = {
-      amount: fromTokenUnits(lamports, 9),
-      unit: 'SOL',
-    };
+    const decimals = 9;
 
     await Promise.all([
-      this.#assetsService.saveAsset(keyringAccount, assetType, balance),
+      this.#assetsService.save({
+        assetType: `${network}/${SolanaCaip19Tokens.SOL}`,
+        keyringAccountId: keyringAccount.id,
+        network,
+        address,
+        symbol: 'SOL',
+        decimals,
+        rawAmount: lamports.toString(),
+        uiAmount: fromTokenUnits(lamports, decimals),
+      }),
       this.#saveCausingTransaction(keyringAccount, network, address),
     ]);
   }
@@ -350,8 +359,10 @@ export class KeyringAccountMonitor {
     const { mint } = notification.params.result.value.account.data.parsed.info;
     assert(mint, string());
 
-    const { uiAmountString } =
+    const { amount, decimals, uiAmountString } =
       notification.params.result.value.account.data.parsed.info.tokenAmount;
+    assert(amount, string());
+    assert(decimals, number());
     assert(uiAmountString, string());
 
     const { pubkey } = notification.params.result.value;
@@ -366,9 +377,16 @@ export class KeyringAccountMonitor {
 
     await Promise.all([
       // Update the balance of the token asset
-      this.#assetsService.saveAsset(keyringAccount, assetType, {
-        amount: uiAmountString,
-        unit: '',
+      this.#assetsService.save({
+        assetType,
+        keyringAccountId: keyringAccount.id,
+        network,
+        mint,
+        pubkey,
+        symbol: '',
+        decimals,
+        rawAmount: amount,
+        uiAmount: uiAmountString,
       }),
       // Fetch and save the transaction that caused the token asset change.
       this.#saveCausingTransaction(keyringAccount, network, pubkey),
@@ -392,7 +410,9 @@ export class KeyringAccountMonitor {
       await this.#transactionsService.fetchLatestSignatures(
         network,
         asAddress(address),
-        1,
+        {
+          limit: 1,
+        },
       )
     )?.[0];
 
@@ -411,7 +431,7 @@ export class KeyringAccountMonitor {
     }
 
     // Note that the TransactionService will avoid saving duplicates in the state.
-    await this.#transactionsService.saveTransaction(transaction, account);
+    await this.#transactionsService.save(transaction);
   }
 
   /**
@@ -427,6 +447,12 @@ export class KeyringAccountMonitor {
     this.#monitoredKeyringAccounts.get(accountId)?.add(subscriptionId);
   }
 
+  /**
+   * Recover from potential missed messages (while connection was down)
+   * by syncing all accounts that were previously monitored on this network.
+   *
+   * @param network - The network to handle the connection recovery for.
+   */
   async #handleConnectionRecovery(network: Network): Promise<void> {
     this.#logger.info('Handling connection recovery', { network });
 
@@ -449,8 +475,7 @@ export class KeyringAccountMonitor {
       return;
     }
 
-    // Recover from potential missed messages by refreshing the assets of the accounts that were previously monitored on this network
-    await this.#assetsService.refreshAssets(
+    await this.#accountsSynchronizer.synchronize(
       accountPreviouslyMonitoredOnThisNetwork,
     );
   }

@@ -1,5 +1,1 @@
-export enum CronjobMethod {
-  RefreshSend = 'refreshSend',
-  RefreshConfirmationEstimation = 'refreshConfirmationEstimation',
-  ScheduleRefreshAccounts = 'scheduleRefreshAccounts',
-}
+export enum CronjobMethod {}

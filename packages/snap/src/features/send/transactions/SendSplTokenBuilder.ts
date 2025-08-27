@@ -44,10 +44,11 @@ export class SendSplTokenBuilder implements ISendTransactionBuilder {
   readonly #logger: ILogger;
 
   /**
-   * The transaction built here always consumes less than 30,000 compute units,
-   * even in the case where we need to create the recepient's associated token account.
+   * The transaction built here consumes up to ~30,000 compute units when just transferring
+   * to an existing associated token account, but requires ~35,000+ compute units when
+   * creating the recipient's associated token account.
    */
-  readonly #computeUnitLimit = 30_000;
+  readonly #computeUnitLimit = 40_000;
 
   readonly #computeUnitPriceMicroLamportsPerComputeUnit = 10000n;
 
@@ -70,14 +71,6 @@ export class SendSplTokenBuilder implements ISendTransactionBuilder {
 
     assert(mint, 'Mint is required');
 
-    const { privateKeyBytes } = await deriveSolanaKeypair({
-      entropySource: from.entropySource,
-      derivationPath: from.derivationPath,
-    });
-
-    const signer =
-      await createKeyPairSignerFromPrivateKeyBytes(privateKeyBytes);
-
     const splTokenTokenAccount = await this.getTokenAccount<MaybeHasDecimals>({
       mint,
       network,
@@ -87,6 +80,17 @@ export class SendSplTokenBuilder implements ISendTransactionBuilder {
     const tokenProgram = splTokenTokenAccount.programAddress;
     const decimals = this.getDecimals(splTokenTokenAccount);
     const amountInTokenUnits = toTokenUnits(amount, decimals);
+
+    const latestBlockhash =
+      await this.#transactionHelper.getLatestBlockhash(network);
+
+    const { privateKeyBytes } = await deriveSolanaKeypair({
+      entropySource: from.entropySource,
+      derivationPath: from.derivationPath,
+    });
+
+    const signer =
+      await createKeyPairSignerFromPrivateKeyBytes(privateKeyBytes);
 
     const [fromTokenAccountAddress, toTokenAccountAddress] = await Promise.all([
       SendSplTokenBuilder.deriveAssociatedTokenAccountAddress({
@@ -100,9 +104,6 @@ export class SendSplTokenBuilder implements ISendTransactionBuilder {
         tokenProgram,
       }),
     ]);
-
-    const latestBlockhash =
-      await this.#transactionHelper.getLatestBlockhash(network);
 
     const transactionMessage = pipe(
       createTransactionMessage({ version: 0 }),

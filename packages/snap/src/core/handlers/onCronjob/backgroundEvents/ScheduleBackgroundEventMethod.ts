@@ -5,6 +5,10 @@ export enum ScheduleBackgroundEventMethod {
   OnTransactionApproved = 'onTransactionApproved',
   /** Triggered when a transaction is rejected */
   OnTransactionRejected = 'onTransactionRejected',
-  /** Triggered when the snap needs to refresh the user's accounts */
-  OnAccountsRefresh = 'onAccountsRefresh',
+  /** Use it to schedule a background event to asynchronously fetch the transactions of an account */
+  OnSyncAccountTransactions = 'onSyncAccountTransactions',
+  /** Use it to schedule a background event to refresh the send form */
+  RefreshSend = 'refreshSend',
+  /** Use it to schedule a background event to refresh the confirmation estimation */
+  RefreshConfirmationEstimation = 'refreshConfirmationEstimation',
 }

@@ -9,6 +9,7 @@ import type {
 } from '../../../entities';
 import { EventEmitter } from '../../../infrastructure';
 import { Network } from '../../constants/solana';
+import type { AnalyticsService } from '../analytics/AnalyticsService';
 import type { ConfigProvider } from '../config';
 import { mockLogger } from '../mocks/logger';
 import type { SubscriptionRepository } from './SubscriptionRepository';
@@ -118,6 +119,7 @@ describe('SubscriptionService', () => {
   let mockSubscriptionRepository: SubscriptionRepository;
   let mockConfigProvider: ConfigProvider;
   let mockEventEmitter: EventEmitter;
+  let mockAnalyticsService: AnalyticsService;
   const connectionRecoveryHandlers: Map<Network, ConnectionRecoveryHandler[]> =
     new Map();
 
@@ -170,6 +172,10 @@ describe('SubscriptionService', () => {
     } as unknown as ConfigProvider;
 
     mockEventEmitter = new EventEmitter(mockLogger);
+
+    mockAnalyticsService = {
+      trackInactiveWebSocketMessage: jest.fn(),
+    } as unknown as AnalyticsService;
 
     service = new SubscriptionService(
       mockWebSocketConnectionService,

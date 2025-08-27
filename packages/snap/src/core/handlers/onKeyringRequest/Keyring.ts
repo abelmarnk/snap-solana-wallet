@@ -6,6 +6,7 @@ import type {
   EntropySourceId,
   KeyringEventPayload,
   MetaMaskOptions,
+  Pagination,
 } from '@metamask/keyring-api';
 import {
   KeyringEvent,
@@ -38,20 +39,22 @@ import {
   asStrictKeyringAccount,
   type SolanaKeyringAccount,
 } from '../../../entities';
-import { Network } from '../../constants/solana';
-import type { KeyringAccountMonitor } from '../../services';
-import type { AssetsService } from '../../services/assets/AssetsService';
+import { Network, SolanaCaip19Tokens } from '../../constants/solana';
+import type {
+  AssetsService,
+  KeyringAccountMonitor,
+  TransactionsService,
+} from '../../services';
 import type { ConfirmationHandler } from '../../services/confirmation/ConfirmationHandler';
 import type { NameResolutionService } from '../../services/name-resolution/NameResolutionService';
 import type { IStateManager } from '../../services/state/IStateManager';
 import type { UnencryptedStateValue } from '../../services/state/State';
-import type { TransactionsService } from '../../services/transactions/TransactionsService';
 import { SolanaWalletRequestStruct } from '../../services/wallet/structs';
 import type { WalletService } from '../../services/wallet/WalletService';
 import { deriveSolanaKeypair } from '../../utils/deriveSolanaKeypair';
 import { getLowestUnusedIndex } from '../../utils/getLowestUnusedIndex';
 import { listEntropySources } from '../../utils/interface';
-import type { ILogger } from '../../utils/logger';
+import { createPrefixedLogger, type ILogger } from '../../utils/logger';
 import {
   DeleteAccountStruct,
   GetAccounBalancesResponseStruct,
@@ -62,6 +65,7 @@ import {
   NetworkStruct,
 } from '../../validation/structs';
 import { validateRequest, validateResponse } from '../../validation/validators';
+import { ScheduleBackgroundEventMethod } from '../onCronjob/backgroundEvents/ScheduleBackgroundEventMethod';
 import {
   DiscoverAccountsRequestStruct,
   SolanaKeyringRequestStruct,
@@ -104,7 +108,7 @@ export class SolanaKeyring implements Keyring {
     nameResolutionService: NameResolutionService;
   }) {
     this.#state = state;
-    this.#logger = logger;
+    this.#logger = createPrefixedLogger(logger, '[🔑 Keyring]');
     this.#transactionsService = transactionsService;
     this.#assetsService = assetsService;
     this.#walletService = walletService;
@@ -238,7 +242,7 @@ export class SolanaKeyring implements Keyring {
 
       if (sameAccount) {
         this.#logger.warn(
-          '[🔑 Keyring] An account already exists with the same derivation path and entropy source. Skipping account creation.',
+          'An account already exists with the same derivation path and entropy source. Skipping account creation.',
         );
         return asStrictKeyringAccount(sameAccount);
       }
@@ -292,6 +296,18 @@ export class SolanaKeyring implements Keyring {
         solanaKeyringAccount,
       );
 
+      // Fetch the assets for the account
+      const assetEntities =
+        await this.#assetsService.fetch(solanaKeyringAccount);
+
+      // Save the assets in state
+      await this.#assetsService.saveMany(assetEntities);
+
+      // Start monitoring the account for updates on its assets
+      await this.#keyringAccountMonitor.monitorKeyringAccount(
+        solanaKeyringAccount,
+      );
+
       const keyringAccount: KeyringAccount =
         asStrictKeyringAccount(solanaKeyringAccount);
 
@@ -320,9 +336,17 @@ export class SolanaKeyring implements Keyring {
           : {}),
       });
 
-      await this.#keyringAccountMonitor.monitorKeyringAccount(
-        solanaKeyringAccount,
-      );
+      // Schedule a fetch of the account's transactions
+      await snap.request({
+        method: 'snap_scheduleBackgroundEvent',
+        params: {
+          duration: 'PT1S',
+          request: {
+            method: ScheduleBackgroundEventMethod.OnSyncAccountTransactions,
+            params: { accountId: id },
+          },
+        },
+      });
 
       return keyringAccount;
     } catch (error: any) {
@@ -370,7 +394,17 @@ export class SolanaKeyring implements Keyring {
       validateRequest({ accountId }, ListAccountAssetsStruct);
 
       const account = await this.getAccountOrThrow(accountId);
-      const result = await this.#assetsService.listAccountAssets(account);
+
+      const assetEntities = await this.#assetsService.findByAccount(account);
+
+      const result = assetEntities
+        // Remove token assets with zero balance
+        .filter(
+          (asset) =>
+            asset.assetType.endsWith(SolanaCaip19Tokens.SOL) ||
+            Number(asset.rawAmount) > 0,
+        )
+        .map((asset) => asset.assetType);
 
       validateResponse(result, ListAccountAssetsResponseStruct);
       return result;
@@ -394,9 +428,25 @@ export class SolanaKeyring implements Keyring {
       validateRequest({ accountId, assets }, GetAccountBalancesStruct);
 
       const account = await this.getAccountOrThrow(accountId);
-      const result = await this.#assetsService.getAccountBalances(
-        account,
-        assets,
+
+      const assetsToUse = (await this.#assetsService.findByAccount(account))
+        .filter((asset) => assets.includes(asset.assetType))
+        // Remove token assets with zero balance
+        .filter(
+          (asset) =>
+            asset.assetType.endsWith(SolanaCaip19Tokens.SOL) ||
+            Number(asset.rawAmount) > 0,
+        );
+
+      const result = assetsToUse.reduce<Record<CaipAssetType, Balance>>(
+        (acc, asset) => {
+          acc[asset.assetType] = {
+            unit: asset.symbol,
+            amount: asset.uiAmount,
+          };
+          return acc;
+        },
+        {},
       );
 
       validateResponse(result, GetAccounBalancesResponseStruct);
@@ -498,13 +548,14 @@ export class SolanaKeyring implements Keyring {
    */
   async listAccountTransactions(
     accountId: string,
-    pagination: { limit: number; next?: Signature | null },
+    pagination: Pagination,
   ): Promise<{
     data: Transaction[];
     next: Signature | null;
   }> {
     try {
       validateRequest({ accountId, pagination }, ListAccountTransactionsStruct);
+      const { limit, next } = pagination;
 
       const keyringAccount = await this.getAccount(accountId);
 
@@ -512,48 +563,25 @@ export class SolanaKeyring implements Keyring {
         throw new Error('Account not found');
       }
 
-      const allTransactions =
-        (await this.#state.getKey<Transaction[]>(
-          `transactions.${accountId}`,
-        )) ?? [];
-
-      /**
-       * If we don't have any transactions, we might need to bootstrap them as this may be the first call.
-       * We'll fetch the transactions from the blockchain and store them in the state.
-       */
-      if (!allTransactions.length) {
-        const transactions =
-          await this.#transactionsService.fetchLatestAccountTransactions(
-            keyringAccount,
-            pagination.limit,
-          );
-
-        await this.#state.setKey(
-          `transactions.${keyringAccount.id}`,
-          transactions,
-        );
-
-        return {
-          data: transactions,
-          next: null,
-        };
-      }
+      const transactions = await this.#transactionsService.findByAccounts([
+        keyringAccount,
+      ]);
 
       // Find the starting index based on the 'next' signature
-      const startIndex = pagination.next
-        ? allTransactions.findIndex((tx) => tx.id === pagination.next)
+      const startIndex = next
+        ? transactions.findIndex((tx) => tx.id === next)
         : 0;
 
       // Get transactions from startIndex to startIndex + limit
-      const accountTransactions = allTransactions.slice(
+      const accountTransactions = transactions.slice(
         startIndex,
-        startIndex + pagination.limit,
+        startIndex + limit,
       );
 
       // Determine the next signature for pagination
-      const hasMore = startIndex + pagination.limit < allTransactions.length;
+      const hasMore = startIndex + pagination.limit < transactions.length;
       const nextSignature = hasMore
-        ? ((allTransactions[startIndex + pagination.limit]?.id as Signature) ??
+        ? ((transactions[startIndex + pagination.limit]?.id as Signature) ??
           null)
         : null;
 
@@ -628,13 +656,11 @@ export class SolanaKeyring implements Keyring {
 
       const derivationPath = this.#getDefaultDerivationPath(groupIndex);
 
-      const keypair = await deriveSolanaKeypair({
+      const { publicKeyBytes } = await deriveSolanaKeypair({
         entropySource,
         derivationPath,
       });
-      const address = getAddressDecoder().decode(
-        keypair.publicKeyBytes.slice(1),
-      );
+      const address = getAddressDecoder().decode(publicKeyBytes.slice(1));
 
       const activityChecksPromises = [];
 
@@ -643,7 +669,7 @@ export class SolanaKeyring implements Keyring {
           this.#transactionsService.fetchLatestSignatures(
             scope as Network,
             address,
-            1,
+            { limit: 1 },
           ),
         );
       }

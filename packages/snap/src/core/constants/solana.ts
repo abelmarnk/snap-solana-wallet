@@ -8,6 +8,7 @@ export const MICRO_LAMPORTS_PER_LAMPORTS = 1_000_000n;
 export const LAMPORTS_PER_SOL = 1_000_000_000;
 export const DEFAULT_NETWORK_BLOCK_EXPLORER_URL = 'https://solscan.io';
 export const METAMASK_ORIGIN = 'metamask';
+export const METAMASK_ORIGIN_URL = 'https://metamask.io';
 
 /**
  * Solana CAIP-2 Networks
@@ -31,7 +32,7 @@ export enum KnownCaip19Id {
   EurcMainnet = `${Network.Mainnet}/token:HzwqbKZw8HxMN6bF2yFZNrht3c2iXXzpKcFu7uBEDKtr`,
   EurcDevnet = `${Network.Devnet}/token:HzwqbKZw8HxMN6bF2yFZNrht3c2iXXzpKcFu7uBEDKtr`,
   EurcLocalnet = `${Network.Localnet}/token:HzwqbKZw8HxMN6bF2yFZNrht3c2iXXzpKcFu7uBEDKtr`,
-  Ai16zLocalnet = `${Network.Localnet}/token:HeLp6NuQkmYB4pYWo2zYs22mESHXPQYzXbB8n4V98jwC`,
+  Ai16zMainnet = `${Network.Mainnet}/token:HeLp6NuQkmYB4pYWo2zYs22mESHXPQYzXbB8n4V98jwC`,
 }
 
 export type NativeCaipAssetType = `${Network}/slip44:501`;

@@ -1,35 +1,30 @@
 import type { SolanaKeyringAccount } from '../../../entities';
-import type { IStateManager } from '../state/IStateManager';
-import type { UnencryptedStateValue } from '../state/State';
+import type { AccountsRepository } from './AccountsRepository';
 
 export class AccountsService {
-  readonly #state: IStateManager<UnencryptedStateValue>;
+  readonly #accountsRepository: AccountsRepository;
 
-  constructor(state: IStateManager<UnencryptedStateValue>) {
-    this.#state = state;
+  constructor(accountsRepository: AccountsRepository) {
+    this.#accountsRepository = accountsRepository;
   }
 
-  /**
-   * Returns all accounts from the state.
-   * @returns All accounts from the state.
-   */
   async getAll(): Promise<SolanaKeyringAccount[]> {
-    const accounts =
-      await this.#state.getKey<UnencryptedStateValue['keyringAccounts']>(
-        'keyringAccounts',
-      );
-
-    return Object.values(accounts ?? {});
+    return this.#accountsRepository.getAll();
   }
 
   async findById(id: string): Promise<SolanaKeyringAccount | null> {
-    const accounts = await this.getAll();
-    return accounts.find((account) => account.id === id) ?? null;
+    return this.#accountsRepository.findById(id);
   }
 
   async findByAddress(address: string): Promise<SolanaKeyringAccount | null> {
-    const accounts = await this.getAll();
+    return this.#accountsRepository.findByAddress(address);
+  }
 
-    return accounts.find((account) => account.address === address) ?? null;
+  async save(account: SolanaKeyringAccount): Promise<void> {
+    return this.#accountsRepository.save(account);
+  }
+
+  async delete(id: string): Promise<void> {
+    return this.#accountsRepository.delete(id);
   }
 }
